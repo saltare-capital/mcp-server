@@ -17,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from pydantic import ValidationError
+from datetime import datetime as _dt_obj
 from models import (
     LiveForm,
     ProjectFile,
@@ -29,6 +30,18 @@ from models import (
     NotifyInsights,
     NotifyOrderEvents,
     AutoRestart,
+    # Patch 4 additions
+    ObjectStoreProperties,
+    ObjectStoreSummary,
+    LiveAlgorithmSummary,
+    LiveAlgorithm,
+    LiveAlgorithmResults,
+    Trade,
+    TradeStatistics,
+    Version,
+    CreateOptimizationResponse,
+    Order,
+    Optimization,
 )
 
 # Realistic parameter-dict shapes derived from the B5.1 ValidationError input_value
@@ -38,6 +51,85 @@ SAMPLE_PARAMETER_DICTS = [
     {'key': 'rebalance_period', 'min': 1.0, 'max': 90.0, 'step': 1.0},
     {'key': 'threshold', 'min': 0.01, 'max': 0.5, 'step': 0.01},
 ]
+
+# ============================================================================
+# Stage-2 methodology upgrade (Patch 4 additions)
+# ============================================================================
+#
+# WHY THESE TESTS EXIST
+# ---------------------
+# B-iter.5 surfaced a Stage-2 failure (FastMCP outputSchema MCP -32602) on
+# Project.lastLiveDeployment after Patches 1-3 cleared Stage 1 entirely. The
+# B2 suite at that point tested Stage 1 (Pydantic model_validate) only.
+# Stage 2 (JSON Schema 'format: date-time' on serialized output) was untested
+# locally, so the failure only surfaced at integration time. The specific
+# trigger format was '+0000' offset (no colon), which Pydantic 2.13.4
+# accepts via lenient datetime parsing but JSON Schema rejects via RFC 3339
+# format check.
+#
+# WHAT THESE TESTS DO
+# -------------------
+# For each of the 31 Patch-4 fields (Optional[datetime] -> Optional[str]),
+# verify the patched type accepts the 8 date-time format variations QC's API
+# may emit, including the '+0000' offset that triggered B-iter.5. None
+# should raise ValidationError on model_validate.
+#
+# WHAT THESE TESTS DON'T DO
+# -------------------------
+# These tests do not run the FastMCP outputSchema validator. That requires
+# the MCP server runtime (Phase 5 work). These tests verify the upstream
+# invariant: the patched field is permissive enough that Stage 1 cannot
+# reject any string the API emits. Stage 2 verification still requires the
+# integration discriminator at B-iter2.6.
+#
+# METHODOLOGICAL LIMITATION
+# -------------------------
+# A passing test here does NOT guarantee Stage 2 will pass. Patch 4's
+# premise is that FastMCP derives outputSchema from the Pydantic model
+# declaration, so Optional[str] yields a JSON Schema with no
+# 'format: date-time' constraint. If FastMCP's tool definitions hard-code
+# the schema independently of the model, Patch 4 won't propagate. That
+# unknown is what B-iter2.6 will discriminate.
+# ============================================================================
+
+DATETIME_FORMAT_VARIATIONS = [
+    '2025-09-09T01:23:45',           # naive ISO, no TZ
+    '2025-09-09T01:23:45Z',          # UTC Zulu
+    '2025-09-09T01:23:45+00:00',     # RFC 3339 with colon offset
+    '2025-09-09T01:23:45+0000',      # B-iter.5 trigger: offset without colon
+    '2025-09-09 01:23:45',           # space separator
+    '09/09/2025',                    # US date format
+    'arbitrary-string',              # negative-format soak: non-date string
+    None,                            # Optional invariant preservation
+]
+
+# Required-fields bases for the two patched classes with non-Optional fields.
+PROJECT_REQUIRED_BASE = {
+    'projectId': 31546731,
+    'organizationId': '5cad178b20a1d52567b534553413b691',
+    'name': 'Patch4-format-variation-test',
+    'modified': '2025-09-09T01:23:45',
+    'created': '2025-09-09T01:23:45',
+    'ownerId': 365490,
+    'language': 'Py',
+}
+OPTIMIZATION_REQUIRED_BASE = {'projectId': 31546731}
+
+
+def _validate_field_variations(cls, fields, base=None):
+    """For each (field, variation) pair, instantiate cls with that field
+    populated and assert round-trip equality. Optional `base` provides any
+    required fields the class needs (only Project has these)."""
+    base = base or {}
+    for fld in fields:
+        for variation in DATETIME_FORMAT_VARIATIONS:
+            data = {**base, fld: variation}
+            obj = cls.model_validate(data)
+            actual = getattr(obj, fld)
+            assert actual == variation, (
+                f"{cls.__name__}.{fld} round-trip mismatch for {variation!r}: "
+                f"got {actual!r}"
+            )
 
 results = []
 
@@ -378,6 +470,169 @@ def test_full_backtest_response_with_parameterset():
     assert len(bsr.parameterSet) == 3
 
 
+# --- Test 23: ObjectStoreProperties — Patch 4 format variations ---
+def test_objectstoreproperties_format_variations():
+    _validate_field_variations(ObjectStoreProperties, ('modified', 'created'))
+
+
+# --- Test 24: LiveAlgorithmSummary — Patch 4 format variations ---
+def test_liveaalgorithmsummary_format_variations():
+    _validate_field_variations(LiveAlgorithmSummary, ('launched', 'stopped'))
+
+
+# --- Test 25: ObjectStoreSummary — Patch 4 format variations ---
+def test_objectstoresummary_format_variations():
+    _validate_field_variations(ObjectStoreSummary, ('modified',))
+
+
+# --- Test 26: Trade — Patch 4 format variations ---
+def test_trade_format_variations():
+    _validate_field_variations(Trade, ('entryTime', 'exitTime'))
+
+
+# --- Test 27: TradeStatistics — Patch 4 format variations ---
+def test_tradestatistics_format_variations():
+    _validate_field_variations(TradeStatistics, ('startDateTime', 'endDateTime'))
+
+
+# --- Test 28: Version — Patch 4 format variations (inline-decl edge case) ---
+def test_version_format_variations():
+    _validate_field_variations(Version, ('itimestamp',))
+
+
+# --- Test 29: BacktestResult — Patch 4 format variations ---
+def test_backtestresult_format_variations():
+    _validate_field_variations(
+        BacktestResult,
+        ('backtestStart', 'backtestEnd', 'created', 'outOfSampleMaxEndDate'),
+    )
+
+
+# --- Test 30: CreateOptimizationResponse — Patch 4 format variations ---
+def test_createoptimizationresponse_format_variations():
+    _validate_field_variations(
+        CreateOptimizationResponse,
+        ('created', 'outOfSampleMaxEndDate'),
+    )
+
+
+# --- Test 31: LiveAlgorithm — Patch 4 format variations ---
+def test_livealgorithm_format_variations():
+    _validate_field_variations(LiveAlgorithm, ('launched', 'stopped'))
+
+
+# --- Test 32: LiveAlgorithmResults — Patch 4 format variations ---
+def test_livealgorithmresults_format_variations():
+    _validate_field_variations(LiveAlgorithmResults, ('launched', 'stopped'))
+
+
+# --- Test 33: OptimizationBacktest — Patch 4 format variations ---
+def test_optimizationbacktest_format_variations():
+    _validate_field_variations(
+        OptimizationBacktest,
+        ('startDate', 'endDate', 'outOfSampleMaxEndDate'),
+    )
+
+
+# --- Test 34: Order — Patch 4 format variations ---
+def test_order_format_variations():
+    _validate_field_variations(
+        Order,
+        ('time', 'createdTime', 'lastFillTime', 'lastUpdateTime', 'canceledTime'),
+    )
+
+
+# --- Test 35: Project.lastLiveDeployment — Patch 4 format variations ---
+def test_project_lastlivedeployment_format_variations():
+    _validate_field_variations(
+        Project,
+        ('lastLiveDeployment',),
+        base=PROJECT_REQUIRED_BASE,
+    )
+
+
+# --- Test 36: Optimization — Patch 4 format variations ---
+def test_optimization_format_variations():
+    _validate_field_variations(
+        Optimization,
+        ('requested', 'outOfSampleMaxEndDate'),
+        base=OPTIMIZATION_REQUIRED_BASE,
+    )
+
+
+# --- Test 37: datetime-object contract probe (Refinement 1) ---
+def test_patched_field_datetime_object_contract():
+    """Refinement 1 contract probe: what does Optional[str] do with a Python
+    datetime object input under pydantic 2.13.4 default config? Either outcome
+    (rejection or silent coercion) is informative for the audit trail."""
+    dt_obj = _dt_obj(2025, 9, 9, 1, 23, 45)
+    try:
+        bsr = BacktestSummaryResult.model_validate({'created': dt_obj})
+        assert isinstance(bsr.created, str), (
+            f"silent-coercion result is not str: type={type(bsr.created).__name__}, "
+            f"value={bsr.created!r}"
+        )
+        contract = 'coerce_to_str'
+        contract_value = bsr.created
+    except ValidationError:
+        contract = 'reject'
+        contract_value = None
+    assert contract in ('coerce_to_str', 'reject'), f"unexpected contract: {contract}"
+    print(f"  [contract observation] BacktestSummaryResult.created vs datetime "
+          f"object: {contract}" + (f" -> {contract_value!r}" if contract_value else ''))
+
+
+# --- Test 38: Cross-class soak — B-iter.5 failure-shape replication (Refinement 2) ---
+def test_projectlist_response_b_iter5_failure_replication():
+    """Cross-class soak: replicates the exact B-iter.5 failure wire-shape.
+    Project.lastLiveDeployment with '+0000' format (no colon in offset) was
+    the specific shape that triggered Stage-2 FastMCP outputSchema rejection
+    on ~80 of Hugh's QC projects. Under Patch 4, Stage 1 must accept this
+    format without ValidationError."""
+    response = {
+        'projects': [
+            {
+                'projectId': 199,
+                'organizationId': '5cad178b20a1d52567b534553413b691',
+                'name': 'B-iter5-replication-project-199',
+                'modified': '2024-12-01 14:23:45',
+                'created': '2023-08-15 09:00:00',
+                'ownerId': 365490,
+                'language': 'Py',
+                'lastLiveDeployment': '2025-09-09T01:23:45+0000',  # THE failure format
+            },
+            {
+                'projectId': 202,
+                'organizationId': '5cad178b20a1d52567b534553413b691',
+                'name': 'B-iter5-replication-project-202',
+                'modified': '2024-11-15 09:00:00',
+                'created': '2023-05-01 12:00:00',
+                'ownerId': 365490,
+                'language': 'Py',
+                'lastLiveDeployment': None,  # null branch — Optional invariant
+            },
+            {
+                'projectId': 217,
+                'organizationId': '5cad178b20a1d52567b534553413b691',
+                'name': 'B-iter5-replication-project-217',
+                'modified': '2024-09-10 18:30:00',
+                'created': '2023-04-22 14:15:30',
+                'ownerId': 365490,
+                'language': 'Py',
+                'lastLiveDeployment': '2025-09-09T01:23:45',  # bare ISO, no TZ
+            },
+        ],
+        'versions': [],
+        'success': True,
+    }
+    plr = ProjectListResponse.model_validate(response)
+    assert plr.success is True
+    assert len(plr.projects) == 3
+    assert plr.projects[0].lastLiveDeployment == '2025-09-09T01:23:45+0000'
+    assert plr.projects[1].lastLiveDeployment is None
+    assert plr.projects[2].lastLiveDeployment == '2025-09-09T01:23:45'
+
+
 # --- Run all tests ---
 tests = [
     ('test_liveform_accepts_python_bool',           test_liveform_accepts_python_bool),
@@ -404,6 +659,24 @@ tests = [
     ('test_optimizationbacktest_parameterset_accepts_empty_list',    test_optimizationbacktest_parameterset_accepts_empty_list),
     ('test_optimizationbacktest_parameterset_accepts_None',          test_optimizationbacktest_parameterset_accepts_None),
     ('test_full_backtest_response_with_parameterset',                test_full_backtest_response_with_parameterset),
+    # Patch 4: Stage-2 methodology upgrade — format variations across 14 classes
+    ('test_objectstoreproperties_format_variations',     test_objectstoreproperties_format_variations),
+    ('test_liveaalgorithmsummary_format_variations',     test_liveaalgorithmsummary_format_variations),
+    ('test_objectstoresummary_format_variations',        test_objectstoresummary_format_variations),
+    ('test_trade_format_variations',                     test_trade_format_variations),
+    ('test_tradestatistics_format_variations',           test_tradestatistics_format_variations),
+    ('test_version_format_variations',                   test_version_format_variations),
+    ('test_backtestresult_format_variations',            test_backtestresult_format_variations),
+    ('test_createoptimizationresponse_format_variations', test_createoptimizationresponse_format_variations),
+    ('test_livealgorithm_format_variations',             test_livealgorithm_format_variations),
+    ('test_livealgorithmresults_format_variations',      test_livealgorithmresults_format_variations),
+    ('test_optimizationbacktest_format_variations',      test_optimizationbacktest_format_variations),
+    ('test_order_format_variations',                     test_order_format_variations),
+    ('test_project_lastlivedeployment_format_variations', test_project_lastlivedeployment_format_variations),
+    ('test_optimization_format_variations',              test_optimization_format_variations),
+    # Patch 4: Refinement tests
+    ('test_patched_field_datetime_object_contract',      test_patched_field_datetime_object_contract),
+    ('test_projectlist_response_b_iter5_failure_replication', test_projectlist_response_b_iter5_failure_replication),
 ]
 
 for name, fn in tests:
