@@ -9,7 +9,7 @@ from datetime import datetime, time
 from enum import Enum
 from typing import Annotated, Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Language(Enum):
@@ -4303,6 +4303,13 @@ class LiveForm(BaseModel):
             description='Indicates if the live algorithm should automatically restart after encountering runtime errors.'
         ),
     ] = None
+
+    @field_validator('notifyInsights', 'notifyOrderEvents', 'autoRestart', mode='before')
+    @classmethod
+    def _coerce_bool_to_enum_str(cls, v):
+        if isinstance(v, bool):
+            return 'true' if v else 'false'
+        return v
 
 
 class LiveAlgorithmResults(BaseModel):
