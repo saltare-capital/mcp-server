@@ -3625,7 +3625,7 @@ class BacktestResult(BaseModel):
         ),
     ] = None
     parameterSet: Annotated[
-        Optional[Union[ParameterSet1, Dict[str, Union[str, float, int]]]],
+        Optional[List[Dict[str, Any]]],
         Field(description='Parameters used in the backtest.'),
     ] = None
     rollingWindow: Annotated[
@@ -3688,7 +3688,7 @@ class BacktestSummaryResult(BaseModel):
         Optional[int], Field(description='Number of traadeable days')
     ] = None
     parameterSet: Annotated[
-        Optional[Union[ParameterSet1, Dict[str, Union[str, float, int]]]],
+        Optional[List[Dict[str, Any]]],
         Field(description='Parameters used in the backtest.'),
     ] = None
     snapshotId: Annotated[
@@ -4539,7 +4539,7 @@ class OptimizationBacktest(BaseModel):
         ),
     ] = None
     parameterSet: Annotated[
-        Optional[Union[ParameterSet1, Dict[str, Union[str, float, int]]]],
+        Optional[List[Dict[str, Any]]],
         Field(description='Parameters used in the backtest.'),
     ] = None
     equity: Annotated[
@@ -4748,7 +4748,7 @@ class Project(BaseModel):
     ] = None
     channelId: Annotated[Optional[str], Field(description='Channel id.')] = None
     parameters: Annotated[
-        Optional[Union[ParameterSet1, Dict[str, Union[str, float, int]]]],
+        Optional[List[Dict[str, Any]]],
         Field(description='Optimization parameters.'),
     ] = None
     libraries: Annotated[
