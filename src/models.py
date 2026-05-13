@@ -1444,10 +1444,10 @@ class GetObjectStoreResponse(BaseModel):
 class ObjectStoreProperties(BaseModel):
     key: Annotated[Optional[str], Field(description='Object Store key.')] = None
     modified: Annotated[
-        Optional[datetime], Field(description='Last time it was modified.')
+        Optional[str], Field(description='Last time it was modified.')
     ] = None
     created: Annotated[
-        Optional[datetime], Field(description='Date this project was created.')
+        Optional[str], Field(description='Date this project was created.')
     ] = None
     size: Annotated[
         Optional[float], Field(description='Object Store file size.', examples=[24])
@@ -1727,11 +1727,11 @@ class LiveAlgorithmSummary(BaseModel):
         Optional[str], Field(description='The current status of the deployment.')
     ] = None
     launched: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(description='The date and time when the deployment was launched.'),
     ] = None
     stopped: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(description='The date and time when the deployment was stopped.'),
     ] = None
     brokerage: Annotated[
@@ -1851,7 +1851,7 @@ class ObjectStoreSummary(BaseModel):
     ] = None
     name: Annotated[Optional[str], Field(description='File or folder name.')] = None
     modified: Annotated[
-        Optional[datetime], Field(description='Last time it was modified.')
+        Optional[str], Field(description='Last time it was modified.')
     ] = None
     mime: Annotated[
         Optional[str],
@@ -3041,7 +3041,7 @@ class Direction2(Enum):
 class Trade(BaseModel):
     symbol: Optional[Symbol] = None
     entryTime: Annotated[
-        Optional[datetime], Field(description='The date and time the trade was opened.')
+        Optional[str], Field(description='The date and time the trade was opened.')
     ] = None
     entryPrice: Annotated[
         Optional[float],
@@ -3057,7 +3057,7 @@ class Trade(BaseModel):
         Optional[float], Field(description='The total unsigned quantity of the trade.')
     ] = None
     exitTime: Annotated[
-        Optional[datetime], Field(description='The date and time the trade was closed.')
+        Optional[str], Field(description='The date and time the trade was closed.')
     ] = None
     exitPrice: Annotated[
         Optional[float],
@@ -3096,10 +3096,10 @@ class Trade(BaseModel):
 
 class TradeStatistics(BaseModel):
     startDateTime: Annotated[
-        Optional[datetime], Field(description='The entry date/time of the first trade')
+        Optional[str], Field(description='The entry date/time of the first trade')
     ] = None
     endDateTime: Annotated[
-        Optional[datetime], Field(description='The exit date/time of the first trade.')
+        Optional[str], Field(description='The exit date/time of the first trade.')
     ] = None
     totalNumberOfTrades: Annotated[
         Optional[int], Field(description='The total number of trades.')
@@ -3418,7 +3418,7 @@ class UpdateProjectNodesRequest(BaseModel):
 class Version(BaseModel):
     sdescription: Optional[str] = None
     bpublic: Optional[int] = None
-    itimestamp: Optional[datetime] = None
+    itimestamp: Optional[str] = None
     benchmark_basic: Optional[float] = None
     benchmark_equity_400_minute: Optional[float] = None
     benchmark_equity_1_second: Optional[float] = None
@@ -3593,13 +3593,13 @@ class BacktestResult(BaseModel):
         ),
     ] = None
     backtestStart: Annotated[
-        Optional[datetime], Field(description='The starting time of the backtest')
+        Optional[str], Field(description='The starting time of the backtest')
     ] = None
     backtestEnd: Annotated[
-        Optional[datetime], Field(description='The ending time of the backtest')
+        Optional[str], Field(description='The ending time of the backtest')
     ] = None
     created: Annotated[
-        Optional[datetime], Field(description='Backtest creation date and time.')
+        Optional[str], Field(description='Backtest creation date and time.')
     ] = None
     snapshotId: Annotated[
         Optional[int], Field(description='Snapshot Id of this backtest result.')
@@ -3652,7 +3652,7 @@ class BacktestResult(BaseModel):
         None
     )
     outOfSampleMaxEndDate: Annotated[
-        Optional[datetime], Field(description='End date of out of sample data.')
+        Optional[str], Field(description='End date of out of sample data.')
     ] = None
     outOfSampleDays: Annotated[
         Optional[int], Field(description='Number of days of out of sample days.')
@@ -4082,7 +4082,7 @@ class CreateOptimizationResponse(BaseModel):
         Field(description='Optimization statistical target.'),
     ] = None
     created: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(description='Date and time of when this optimization was created.'),
     ] = None
     psr: Annotated[
@@ -4107,7 +4107,7 @@ class CreateOptimizationResponse(BaseModel):
         Optional[int], Field(description='Number out-of-sample days.')
     ] = None
     outOfSampleMaxEndDate: Annotated[
-        Optional[datetime], Field(description='End date of out-of-sample data.')
+        Optional[str], Field(description='End date of out-of-sample data.')
     ] = None
     parameters: Annotated[
         Optional[List[OptimizationParameter]],
@@ -4230,11 +4230,11 @@ class LiveAlgorithm(BaseModel):
         ),
     ] = None
     launched: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(description='Datetime the algorithm was launched in UTC.'),
     ] = None
     stopped: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(
             description='Datetime the algorithm was stopped in UTC, null if its still running.'
         ),
@@ -4331,11 +4331,11 @@ class LiveAlgorithmResults(BaseModel):
         ),
     ] = None
     launched: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(description='Datetime the algorithm was launched in UTC.'),
     ] = None
     stopped: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(
             description='Datetime the algorithm was stopped in UTC, null if its still running.'
         ),
@@ -4547,16 +4547,16 @@ class OptimizationBacktest(BaseModel):
         Field(description='The backtest equity chart series.'),
     ] = None
     startDate: Annotated[
-        Optional[datetime], Field(description='The backtest start date.')
+        Optional[str], Field(description='The backtest start date.')
     ] = None
     endDate: Annotated[
-        Optional[datetime], Field(description='The backtest end date.')
+        Optional[str], Field(description='The backtest end date.')
     ] = None
     outOfSampleDays: Annotated[
         Optional[int], Field(description='The backtest out-of-sample day count.')
     ] = None
     outOfSampleMaxEndDate: Annotated[
-        Optional[datetime], Field(description='End date of out-of-sample data.')
+        Optional[str], Field(description='End date of out-of-sample data.')
     ] = None
 
 
@@ -4592,27 +4592,27 @@ class Order(BaseModel):
         Optional[str], Field(description='Currency for the order price.')
     ] = None
     time: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(description='Gets the UTC time the order was created.'),
     ] = None
     createdTime: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(description='Gets the UTC time this order was created. Alias for Time.'),
     ] = None
     lastFillTime: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(
             description='Gets the UTC time the last fill was received, or null if no fills have been received.'
         ),
     ] = None
     lastUpdateTime: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(
             description='Gets the UTC time this order was last updated, or null if the order has not been updated.'
         ),
     ] = None
     canceledTime: Annotated[
-        Optional[datetime],
+        Optional[str],
         Field(
             description='Gets the UTC time this order was canceled, or null if the order was not canceled.'
         ),
@@ -4765,7 +4765,7 @@ class Project(BaseModel):
         Field(description='The equity value of the last paper trading instance.'),
     ] = None
     lastLiveDeployment: Annotated[
-        Optional[datetime], Field(description='The last live deployment active time.')
+        Optional[str], Field(description='The last live deployment active time.')
     ] = None
     liveForm: Annotated[
         Optional[LiveForm], Field(description='The last live wizard content used.')
@@ -5095,7 +5095,7 @@ class Optimization(BaseModel):
         Optional[OptimizationStrategy], Field(description='Optimization strategy.')
     ] = None
     requested: Annotated[
-        Optional[datetime], Field(description='Optimization requested date and time.')
+        Optional[str], Field(description='Optimization requested date and time.')
     ] = None
     optimizationTarget: Annotated[
         Optional[OptimizationTargetStatistic],
@@ -5113,7 +5113,7 @@ class Optimization(BaseModel):
         Field(description='List with grid charts representing the grid layout.'),
     ] = None
     outOfSampleMaxEndDate: Annotated[
-        Optional[datetime], Field(description='End date of out of sample data.')
+        Optional[str], Field(description='End date of out of sample data.')
     ] = None
     outOfSampleDays: Annotated[
         Optional[int], Field(description='Number of days of out of sample days.')
