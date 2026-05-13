@@ -1644,7 +1644,7 @@ class Insight(BaseModel):
 class LeanVersion(BaseModel):
     id: Annotated[Optional[int], Field(description='Id of the LEAN version.')] = None
     created: Annotated[
-        Optional[datetime], Field(description='Date when this version was created.')
+        Optional[str], Field(description='Date when this version was created.')
     ] = None
     description: Annotated[
         Optional[str], Field(description='Description of the LEAN version.')
@@ -2211,7 +2211,7 @@ class ProjectFile(BaseModel):
         Optional[str], Field(description='Contents of the project file.')
     ] = None
     modified: Annotated[
-        Optional[datetime], Field(description='DateTime project file was modified.')
+        Optional[str], Field(description='DateTime project file was modified.')
     ] = None
     open: Annotated[
         Optional[bool],
@@ -3672,7 +3672,7 @@ class BacktestSummaryResult(BaseModel):
     ] = None
     name: Annotated[Optional[str], Field(description='Name of the backtest.')] = None
     created: Annotated[
-        Optional[datetime], Field(description='Backtest creation date and time.')
+        Optional[str], Field(description='Backtest creation date and time.')
     ] = None
     progress: Annotated[
         Optional[float], Field(description='Progress of the backtest in percent 0-1.')
@@ -4720,8 +4720,8 @@ class Project(BaseModel):
         ),
     ]
     name: Annotated[str, Field(description='Name of the project.')]
-    modified: Annotated[datetime, Field(description='Modified date for the project.')]
-    created: Annotated[datetime, Field(description='Date the project was created.')]
+    modified: Annotated[str, Field(description='Modified date for the project.')]
+    created: Annotated[str, Field(description='Date the project was created.')]
     ownerId: Annotated[int, Field(description='Owner id.')]
     language: Annotated[
         Language, Field(description='Programming language of the project.')
