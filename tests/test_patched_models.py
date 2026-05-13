@@ -20,7 +20,9 @@ from pydantic import ValidationError
 from models import (
     LiveForm,
     ProjectFile,
+    BacktestResult,
     BacktestSummaryResult,
+    OptimizationBacktest,
     LeanVersion,
     Project,
     ProjectListResponse,
@@ -28,6 +30,14 @@ from models import (
     NotifyOrderEvents,
     AutoRestart,
 )
+
+# Realistic parameter-dict shapes derived from the B5.1 ValidationError input_value
+# examples (e.g., {'key': 'history_lookback', 'min': 0, 'max': 0, 'step': 0}).
+SAMPLE_PARAMETER_DICTS = [
+    {'key': 'history_lookback', 'min': 5, 'max': 30, 'step': 1},
+    {'key': 'rebalance_period', 'min': 1.0, 'max': 90.0, 'step': 1.0},
+    {'key': 'threshold', 'min': 0.01, 'max': 0.5, 'step': 0.01},
+]
 
 results = []
 
@@ -241,6 +251,133 @@ def test_full_projectlist_response_synthetic():
     assert plr.versions[0].created == '2024-08-22 12:00:00'
 
 
+# --- Test 10: Project.parameters accepts list-of-dicts (Patch 3) ---
+def test_project_parameters_accepts_list_of_dicts():
+    base = {
+        'projectId': 31546731,
+        'organizationId': '5cad178b20a1d52567b534553413b691',
+        'name': 'TestProject',
+        'modified': '2025-09-09T01:23:45',
+        'created': '2025-09-09T01:23:45',
+        'ownerId': 365490,
+        'language': 'Py',
+        'parameters': SAMPLE_PARAMETER_DICTS,
+    }
+    p = Project.model_validate(base)
+    assert p.parameters == SAMPLE_PARAMETER_DICTS
+    assert len(p.parameters) == 3
+
+
+# --- Test 11: Project.parameters accepts empty list ---
+def test_project_parameters_accepts_empty_list():
+    base = {
+        'projectId': 31546731,
+        'organizationId': '5cad178b20a1d52567b534553413b691',
+        'name': 'TestProject',
+        'modified': '2025-09-09T01:23:45',
+        'created': '2025-09-09T01:23:45',
+        'ownerId': 365490,
+        'language': 'Py',
+        'parameters': [],
+    }
+    p = Project.model_validate(base)
+    assert p.parameters == []
+
+
+# --- Test 12: Project.parameters accepts None ---
+def test_project_parameters_accepts_None():
+    base = {
+        'projectId': 31546731,
+        'organizationId': '5cad178b20a1d52567b534553413b691',
+        'name': 'TestProject',
+        'modified': '2025-09-09T01:23:45',
+        'created': '2025-09-09T01:23:45',
+        'ownerId': 365490,
+        'language': 'Py',
+        'parameters': None,
+    }
+    p = Project.model_validate(base)
+    assert p.parameters is None
+
+
+# --- Test 13: BacktestResult.parameterSet accepts list-of-dicts (Patch 3) ---
+def test_backtestresult_parameterset_accepts_list_of_dicts():
+    br = BacktestResult.model_validate({'parameterSet': SAMPLE_PARAMETER_DICTS})
+    assert br.parameterSet == SAMPLE_PARAMETER_DICTS
+    assert len(br.parameterSet) == 3
+
+
+# --- Test 14: BacktestResult.parameterSet accepts empty list ---
+def test_backtestresult_parameterset_accepts_empty_list():
+    br = BacktestResult.model_validate({'parameterSet': []})
+    assert br.parameterSet == []
+
+
+# --- Test 15: BacktestResult.parameterSet accepts None ---
+def test_backtestresult_parameterset_accepts_None():
+    br = BacktestResult.model_validate({'parameterSet': None})
+    assert br.parameterSet is None
+
+
+# --- Test 16: BacktestSummaryResult.parameterSet accepts list-of-dicts (Patch 3) ---
+def test_backtestsummaryresult_parameterset_accepts_list_of_dicts():
+    bsr = BacktestSummaryResult.model_validate({'parameterSet': SAMPLE_PARAMETER_DICTS})
+    assert bsr.parameterSet == SAMPLE_PARAMETER_DICTS
+    assert len(bsr.parameterSet) == 3
+
+
+# --- Test 17: BacktestSummaryResult.parameterSet accepts empty list ---
+def test_backtestsummaryresult_parameterset_accepts_empty_list():
+    bsr = BacktestSummaryResult.model_validate({'parameterSet': []})
+    assert bsr.parameterSet == []
+
+
+# --- Test 18: BacktestSummaryResult.parameterSet accepts None ---
+def test_backtestsummaryresult_parameterset_accepts_None():
+    bsr = BacktestSummaryResult.model_validate({'parameterSet': None})
+    assert bsr.parameterSet is None
+
+
+# --- Test 19: OptimizationBacktest.parameterSet accepts list-of-dicts (Patch 3) ---
+def test_optimizationbacktest_parameterset_accepts_list_of_dicts():
+    ob = OptimizationBacktest.model_validate({'parameterSet': SAMPLE_PARAMETER_DICTS})
+    assert ob.parameterSet == SAMPLE_PARAMETER_DICTS
+    assert len(ob.parameterSet) == 3
+
+
+# --- Test 20: OptimizationBacktest.parameterSet accepts empty list ---
+def test_optimizationbacktest_parameterset_accepts_empty_list():
+    ob = OptimizationBacktest.model_validate({'parameterSet': []})
+    assert ob.parameterSet == []
+
+
+# --- Test 21: OptimizationBacktest.parameterSet accepts None ---
+def test_optimizationbacktest_parameterset_accepts_None():
+    ob = OptimizationBacktest.model_validate({'parameterSet': None})
+    assert ob.parameterSet is None
+
+
+# --- Test 22: Integration — BacktestSummaryResult with realistic parameterSet shape ---
+def test_full_backtest_response_with_parameterset():
+    """Mirror the B5.1 failure-shape for the parameterSet sibling: a realistic
+    BacktestSummaryResult shape with parameterSet populated as list-of-dicts,
+    sibling Patch-2 datetime field populated as arbitrary string. Validates the
+    Stage-1 patch holds end-to-end for the model class targeted by list_backtests."""
+    bsr = BacktestSummaryResult.model_validate({
+        'backtestId': 'a1b2c3d4e5f6',
+        'name': 'BacktestRun-2025-11-04',
+        'note': 'parameter sweep run',
+        'created': '2025-11-04 18:23:45',  # arbitrary str — covered by Patch 2
+        'progress': 1.0,
+        'parameterSet': SAMPLE_PARAMETER_DICTS,  # list-of-dicts — covered by Patch 3
+        'tradeableDates': 252,
+    })
+    assert bsr.backtestId == 'a1b2c3d4e5f6'
+    assert bsr.created == '2025-11-04 18:23:45'
+    assert bsr.parameterSet == SAMPLE_PARAMETER_DICTS
+    assert len(bsr.parameterSet) == 3
+
+
 # --- Run all tests ---
 tests = [
     ('test_liveform_accepts_python_bool',           test_liveform_accepts_python_bool),
@@ -254,6 +391,19 @@ tests = [
     ('test_project_modified_rejects_None',           test_project_modified_rejects_None),
     ('test_project_created_rejects_None',            test_project_created_rejects_None),
     ('test_full_projectlist_response_synthetic',     test_full_projectlist_response_synthetic),
+    ('test_project_parameters_accepts_list_of_dicts',     test_project_parameters_accepts_list_of_dicts),
+    ('test_project_parameters_accepts_empty_list',         test_project_parameters_accepts_empty_list),
+    ('test_project_parameters_accepts_None',                test_project_parameters_accepts_None),
+    ('test_backtestresult_parameterset_accepts_list_of_dicts', test_backtestresult_parameterset_accepts_list_of_dicts),
+    ('test_backtestresult_parameterset_accepts_empty_list',    test_backtestresult_parameterset_accepts_empty_list),
+    ('test_backtestresult_parameterset_accepts_None',          test_backtestresult_parameterset_accepts_None),
+    ('test_backtestsummaryresult_parameterset_accepts_list_of_dicts', test_backtestsummaryresult_parameterset_accepts_list_of_dicts),
+    ('test_backtestsummaryresult_parameterset_accepts_empty_list',    test_backtestsummaryresult_parameterset_accepts_empty_list),
+    ('test_backtestsummaryresult_parameterset_accepts_None',          test_backtestsummaryresult_parameterset_accepts_None),
+    ('test_optimizationbacktest_parameterset_accepts_list_of_dicts', test_optimizationbacktest_parameterset_accepts_list_of_dicts),
+    ('test_optimizationbacktest_parameterset_accepts_empty_list',    test_optimizationbacktest_parameterset_accepts_empty_list),
+    ('test_optimizationbacktest_parameterset_accepts_None',          test_optimizationbacktest_parameterset_accepts_None),
+    ('test_full_backtest_response_with_parameterset',                test_full_backtest_response_with_parameterset),
 ]
 
 for name, fn in tests:
